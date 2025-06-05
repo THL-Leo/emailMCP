@@ -99,6 +99,7 @@ $$;
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
+  -- Insert user data
   INSERT INTO public.users (
     id,
     user_id,
@@ -120,6 +121,36 @@ BEGIN
     NEW.created_at,
     NEW.updated_at
   );
+
+  -- Create a basic plan subscription for the new user
+  INSERT INTO public.subscriptions (
+    user_id,
+    price_id,
+    stripe_price_id,
+    currency,
+    interval,
+    status,
+    current_period_start,
+    current_period_end,
+    cancel_at_period_end,
+    amount,
+    started_at,
+    metadata
+  ) VALUES (
+    NEW.id::text,
+    'basic_plan',
+    'basic_plan',
+    'usd',
+    'month',
+    'active',
+    EXTRACT(EPOCH FROM NOW())::bigint,
+    EXTRACT(EPOCH FROM (NOW() + INTERVAL '1 year'))::bigint, -- Basic plan lasts 1 year
+    false,
+    0, -- Basic plan is free
+    EXTRACT(EPOCH FROM NOW())::bigint,
+    jsonb_build_object('plan_type', 'basic', 'auto_created', true)
+  );
+
   RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;

@@ -1,0 +1,174 @@
+# Email MCP Server - Gmail + Microsoft Graph Integration
+
+You are an expert developer building a commercial email MCP (Model Context Protocol) server that integrates Gmail and Microsoft Graph APIs with Claude AI for email summarization and management.
+
+## Project Context
+
+**Goal**: Build a Node.js/TypeScript MCP server that allows Claude to interact with users' Gmail and Microsoft email accounts for reading, sending, searching, and AI-powered email analysis.
+
+**Target Users**: Individual professionals who want AI-powered email productivity tools
+**Tech Stack**: Node.js, TypeScript, Express, MCP TypeScript SDK, Supabase (via Next.js frontend), Stripe
+**Revenue Model**: Freemium SaaS ($7/month Personal, $19/month Professional)
+
+## Core Features to Build
+
+### Email Provider Integrations
+- Gmail API integration with OAuth2 authentication
+- Microsoft Graph API integration for Outlook/Hotmail accounts
+- Multi-account support (users can connect multiple email accounts)
+- Unified email data model across both providers
+- Automatic token refresh and error handling
+
+### MCP Protocol Implementation
+- MCP server that Claude can connect to
+- Email operation tools: list_emails, read_email, send_email, search_emails, summarize_emails
+- Secure authentication via API keys
+- Rate limiting and usage tracking
+
+### AI Features (Claude Integration)
+- Email summarization (limit to 100-150 tokens for cost efficiency)
+- Important email detection and prioritization
+- Action item extraction from emails
+- Quick response drafting assistance
+- Batch processing for multiple emails
+
+### Commercial Features
+- Usage tracking and limits (free: 10 AI ops/month, paid: 200-1000 ops/month)
+- Subscription management integration with Stripe
+- Multi-tenant architecture with user isolation
+- Performance monitoring and error tracking
+
+## Technical Guidelines
+
+### Code Style & Architecture
+- Use TypeScript with strict mode enabled
+- Implement proper error handling with custom error classes
+- Use async/await patterns consistently
+- Follow RESTful API design principles
+- Implement comprehensive logging for debugging and monitoring
+- Use environment variables for all configuration
+- Implement proper input validation and sanitization
+
+### Email API Best Practices
+- Implement exponential backoff for rate limiting
+- Use batch operations when available (Gmail supports up to 50 operations per batch)
+- Cache frequently accessed data (email metadata, folder lists)
+- Implement circuit breaker pattern for API failures
+- Handle different rate limits: Gmail (250 quota units/user/second), Microsoft Graph (10K requests/10min)
+- Store OAuth tokens securely with encryption
+- Implement proper scope management (minimal required permissions)
+
+### Security Requirements
+- Encrypt all OAuth tokens at rest using AES-256
+- Implement JWT-based authentication for MCP connections
+- Use API keys with proper rotation capabilities
+- Validate all inputs and sanitize email content
+- Implement CORS properly for frontend integration
+- Log security events and suspicious activities
+- Never log sensitive data (tokens, email content, passwords)
+
+### Database Schema Design
+```sql
+-- Core tables for multi-tenant email management
+users (id, email, created_at, subscription_plan, stripe_customer_id)
+email_accounts (id, user_id, provider, encrypted_tokens, account_email, display_name, is_active)
+usage_logs (id, user_id, operation_type, cost_tokens, timestamp, account_id)
+mcp_connections (id, user_id, api_key_hash, last_used, is_active)
+```
+
+### Error Handling Patterns
+- Implement custom error classes for different failure types
+- Handle API rate limits gracefully with retry logic
+- Provide meaningful error messages for users
+- Log errors with sufficient context for debugging
+- Implement fallback mechanisms for service failures
+
+## Email Provider Specifics
+
+### Gmail API Integration
+- Use googleapis npm package
+- Implement incremental sync with history API when possible
+- Handle quota efficiently (most operations cost 1-5 units)
+- Support batch operations for better performance
+- Implement proper scopes: gmail.readonly, gmail.send, gmail.modify
+
+### Microsoft Graph Integration
+- Use @azure/msal-node for authentication
+- Handle concurrent request limits (4 per mailbox)
+- Implement proper throttling for 10K/10min limit
+- Support both personal and business accounts
+- Use appropriate Graph API endpoints: /me/messages, /me/sendMail
+
+## MCP Implementation Guidelines
+
+### Tools to Implement
+```typescript
+interface EmailMCPTools {
+  list_emails: (account: string, folder: string, limit: number) => EmailSummary[]
+  read_email: (account: string, messageId: string) => EmailContent
+  send_email: (account: string, to: string, subject: string, body: string) => SendResult
+  search_emails: (account: string, query: string, limit: number) => EmailSummary[]
+  summarize_emails: (account: string, messageIds: string[]) => AISummary
+  get_accounts: () => ConnectedAccount[]
+  mark_read: (account: string, messageIds: string[], read: boolean) => boolean
+}
+```
+
+### Performance Optimization
+- Implement in-memory caching for frequently accessed data
+- Use connection pooling for database connections
+- Implement request deduplication
+- Use streaming responses for large data sets
+- Implement pagination for email lists
+
+## Claude AI Integration
+
+### Cost Optimization
+- Limit summaries to 100-150 output tokens
+- Use prompt caching for similar email types
+- Batch process multiple emails in single requests
+- Implement usage tracking and daily limits
+- Use cheaper models for simple operations
+
+### Prompt Engineering
+- Create specialized prompts for different email types
+- Implement context-aware summarization
+- Use few-shot examples for better results
+- Implement fallback prompts for edge cases
+
+## Development Workflow
+
+### Testing Strategy
+- Unit tests for all core functions
+- Integration tests for email provider APIs
+- Mock external API calls in tests
+- Test OAuth flows with real accounts
+- Load testing for concurrent users
+
+### Deployment Considerations
+- Use environment-based configuration
+- Implement health checks and readiness probes
+- Set up proper logging and monitoring
+- Use secrets management for sensitive data
+- Implement graceful shutdown handling
+
+## Common Patterns to Use
+
+1. **OAuth2 Token Management**: Always implement automatic refresh with fallback to re-authorization
+2. **Rate Limiting**: Use sliding window or token bucket algorithms
+3. **Error Recovery**: Implement exponential backoff with jitter
+4. **Data Validation**: Use Zod or similar for runtime type checking
+5. **Async Processing**: Use queues for time-consuming operations
+6. **Caching**: Implement TTL-based caching for API responses
+
+## Avoid These Antipatterns
+
+- Don't store OAuth tokens in plain text
+- Don't make API calls without rate limiting
+- Don't trust user input without validation
+- Don't log sensitive information
+- Don't implement synchronous email processing
+- Don't ignore API rate limit headers
+- Don't mix authentication contexts between users
+
+When generating code, prioritize security, performance, and maintainability. Always include proper error handling and logging. Focus on creating a production-ready codebase that can scale to thousands of users.

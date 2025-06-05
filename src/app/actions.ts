@@ -33,37 +33,8 @@ export const signUpAction = async (formData: FormData) => {
     return encodedRedirect("error", "/sign-up", error.message);
   }
 
-  if (user) {
-    try {
-
-      const { error: updateError } = await supabase
-        .from('users')
-        .insert({
-          id: user.id,
-          user_id: user.id,
-          name: fullName,
-          email: email,
-          token_identifier: user.id,
-          created_at: new Date().toISOString()
-        });
-
-      if (updateError) {
-        // Error handling without console.error
-        return encodedRedirect(
-          "error",
-          "/sign-up",
-          "Error updating user. Please try again.",
-        );
-      }
-    } catch (err) {
-      // Error handling without console.error
-      return encodedRedirect(
-        "error",
-        "/sign-up",
-        "Error updating user. Please try again.",
-      );
-    }
-  }
+  // The database trigger will automatically create the user record
+  // No need to manually insert into users table
 
   return encodedRedirect(
     "success",
@@ -177,4 +148,52 @@ export const checkUserSubscription = async (userId: string) => {
   }
 
   return !!subscription;
+};
+
+export const getUserSubscription = async (userId: string) => {
+  const supabase = await createClient();
+
+  const { data: subscription, error } = await supabase
+    .from('subscriptions')
+    .select('*')
+    .eq('user_id', userId)
+    .eq('status', 'active')
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .single();
+
+  if (error) {
+    return null;
+  }
+
+  return subscription;
+};
+
+export const sendChatMessage = async (message: string, userId: string) => {
+  "use server";
+  
+  // This is where we'll integrate with the actual MCP server
+  // For now, return a placeholder response
+  
+  try {
+    // TODO: Replace with actual MCP server communication
+    // const mcpResponse = await mcpClient.sendMessage(message, userId);
+    
+    // Simulate some processing time
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
+    // Return a structured response that the chat interface can use
+    return {
+      success: true,
+      message: `MCP Server Response: I received your message "${message}" and would process it with the actual email MCP server. This is a placeholder for the real integration.`,
+      data: null
+    };
+  } catch (error) {
+    console.error('Error communicating with MCP server:', error);
+    return {
+      success: false,
+      message: 'Sorry, I encountered an error while processing your request. Please try again.',
+      data: null
+    };
+  }
 };
